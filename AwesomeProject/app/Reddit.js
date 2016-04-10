@@ -3,7 +3,9 @@ import React, {
   StyleSheet,
   Component,
   Text,
-  View
+  View,
+  TouchableHighlight,
+  Image
 } from 'react-native';
 
 export default class AwesomeProject extends Component {
@@ -16,13 +18,33 @@ export default class AwesomeProject extends Component {
     );
   }
 
-  renderHeader() {
+  headerSearchButtonsPressed() {
+
+  }
+
+  renderHeaderSearch() {
     return (
       <View>
-        <View style={styles.headerSearch}>
-        </View>
-        <View style={styles.headerFilter}>
-        </View>
+        <TouchableHighlight onPress={this.headerSearchButtonsPressed}>
+          <Image source={{uri: 'assets/hamburger.png'}}
+           style={styles.hamburger} />
+          </TouchableHighlight>
+      </View>
+    );
+  }
+
+  renderHeaderFilter() {
+    return (
+      <View>
+      </View>
+    );
+  }
+
+  renderHeader() {
+    return (
+      <View style={styles.header}>
+        {this.renderHeaderSearch()}
+        {this.renderHeaderFilter()}
       </View>
     );
   }
@@ -36,12 +58,22 @@ export default class AwesomeProject extends Component {
 }
 
 const styles = StyleSheet.create({
-  container: {
-  },
-  headerSearch: {
-  },
-  headerFilter: {
-  },
-  content: {
-  }
+    container: {
+      flex: 1,
+      flexDirection: 'column'
+    },
+    header: {
+      flex: .15,
+      backgroundColor: '#FF3366' 
+    },
+    content: {
+      flex: .75,
+      backgroundColor: '#000' 
+    },
+    hamburger: {
+      width: 50, 
+      height: 50,
+      marginLeft: 10,
+      marginTop: 10
+    }
 });
