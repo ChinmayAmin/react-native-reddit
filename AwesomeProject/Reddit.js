@@ -11,6 +11,7 @@ import React, {
 } from 'react-native';
 
 var _ = require('lodash');
+var reddit = require('./RedditApi');
 
 export default class AwesomeProject extends Component {
   constructor(props){
@@ -19,11 +20,13 @@ export default class AwesomeProject extends Component {
       rowHasChanged: (r1, r2) => r1 != r2
     });
 
-    this.state = {
-      ds: this.getSubredditData(),
-      dataSource:ds,
-	  subreddit: ''
-  }
+  	this.state = {
+  		ds: this.getSubredditData(),
+  		dataSource:ds,
+  		subreddit: '',
+      defaultSubredditList: [],
+      loaded: false
+	  }
 }
 
   getSubredditData() {
@@ -34,10 +37,36 @@ export default class AwesomeProject extends Component {
     return data;
   }
 
+  getDefaultData() {
+    reddit.getDefaultSubreddits().then((response) => {
+      let names = [];
+      _.each(response, function(subreddit) {
+        names.push(
+          subreddit.url.split('/r/')[1].split('/')[0]
+        );
+      });
+      console.log('finished');
+      this.setState({
+        loaded: true,
+        defaultSubredditList: names,
+        dataSource:this.state.dataSource.cloneWithRows(names)
+      })
+    }).done();
+  }
+
   componentDidMount() {
-    this.setState({
-      dataSource:this.state.dataSource.cloneWithRows(this.state.ds)
-    })
+    console.log('called');
+    this.getDefaultData();
+  }
+
+  renderLoadingView() {
+    return (
+      <View style={styles.content}>
+        <Text>
+          Loading...
+        </Text>
+      </View>
+    );
   }
 
   render() {
@@ -49,55 +78,71 @@ export default class AwesomeProject extends Component {
     );
   }
 
-  headerSearchButtonsPressed() {
-
+  headerButtonsPressed(itemPressed) {
+   	_.each([1,2], function(test) {
+  	});
+  }
+  populatePicker() {
+    // return (
+    //   <Picker.Item label="test" value="test" />
+    // )
+    // return _.reduce(this.state.defaultSubredditList, function(result, val, key) {
+			// result.push(<Picker.Item label=val value=val />);
+		// 	return result;
+		// }, []);
+    // var result = [];
+    // for (var i = 0; i < this.state.defaultSubredditList.length; i++) {
+    //   result.push(<Picker.Item label=val value=val />);
+    // }
+    // return (
+    //     {result}
+    // );
   }
 
   renderHeaderSearch() {
     return (
-		<View style={styles.headerSearch}>
-			<View style={styles.hamburger}>
-      			<TouchableHighlight onPress={this.headerSearchButtonsPressed}>
-					<Image source={require('./hamburger.png')} style={{height: 30, width: 30}}/>			 
-    	  		</TouchableHighlight>
-			</View>
-			<View style={styles.subredditDropdown}>	
-				<Picker
-					 selectedValue={this.state.subreddit}
-  					 onValueChange={(subreddit) => this.setState({subreddit: subreddit})}>
-					 <Picker.Item label="Front Page" value="Front Page" />
-  					 <Picker.Item label="All" value="js" />
-				</Picker>
-			</View>
-			<View style={styles.space}/>
-			<View style={styles.search}>
-				<TouchableHighlight onPress={this.headerSearchButtonsPressed}>
-					<Image source={require('./search.png')} style={{height: 35, width: 35}}/>			 
-				</TouchableHighlight>
-			</View>
-			<View style={styles.refresh}>
-				<TouchableHighlight onPress={this.headerSearchButtonsPressed}>
-					<Image source={require('./refresh.png')} style={{height: 30, width: 30}}/>			 
-    	  		</TouchableHighlight>
-			</View>
-			<View style={styles.sidebar}>
-				<TouchableHighlight onPress={this.headerSearchButtonsPressed}>
-					<Image source={require('./sidebar.png')} style={{height: 30, width: 30}}/>			 
-    	  		</TouchableHighlight>
-			</View>
-		</View>
+    	<View style={styles.headerSearch}>
+    	<View style={styles.hamburger}>
+    	<TouchableHighlight onPress={this.headerButtonsPressed('hamburger')} underlayColor="#5C5C5C">
+    		<Image source={require('./hamburger.png')} style={{height: 30, width: 30}}/>
+    	</TouchableHighlight>
+    	</View>
+    	<View style={styles.subredditDropdown}>
+        <Picker
+           selectedValue={this.state.subreddit}
+           onValueChange={(subreddit) => this.setState({subreddit: subreddit})}>
+           {this.populatePicker()}
+          </Picker>
+    	</View>
+    	<View style={styles.space}/>
+    	<View style={styles.search}>
+    		<TouchableHighlight onPress={this.headerButtonsPressed('search')} underlayColor="#5C5C5C">
+    			<Image source={require('./search.png')} style={{height: 35, width: 35}}/>
+    		</TouchableHighlight>
+    	</View>
+    	<View style={styles.refresh}>
+    		<TouchableHighlight onPress={this.headerButtonsPressed('refresh')} underlayColor="#5C5C5C">
+    		<Image source={require('./refresh.png')} style={{height: 30, width: 30}}/>
+    	</TouchableHighlight>
+    	</View>
+    	<View style={styles.sidebar}>
+    		<TouchableHighlight onPress={this.headerButtonsPressed('sidebar')} underlayColor="#5C5C5C">
+    		<Image source={require('./sidebar.png')} style={{height: 30, width: 30}}/>
+    	</TouchableHighlight>
+    	</View>
+    	</View>
     );
   }
 
   renderHeaderFilter() {
     return (
      <View style={styles.headerFilter}>
-      	<TouchableHighlight onPress={this.headerSearchButtonsPressed}>
-      	    <Text style={styles.headerFilterText}> What's hot </Text>
-    	</TouchableHighlight>	
+      	<TouchableHighlight onPress={this.headerButtonsPressed('FilterText')} underlayColor="#7A7A7A">
+    		<Text style={styles.headerFilterText}> What's hot </Text>
+    	</TouchableHighlight>
 		<View style={styles.filterSpace}/>
-      	<TouchableHighlight onPress={this.headerSearchButtonsPressed}>
-			<Image source={require('./filter.png')} style={{height: 35, width: 35}}/>			 
+      	<TouchableHighlight onPress={this.headerButtonsPressed('filterBar')} underlayColor="#7A7A7A">
+		<Image source={require('./filter.png')} style={{height: 35, width: 35}}/>
     	</TouchableHighlight>
 	</View>
     );
@@ -127,6 +172,10 @@ export default class AwesomeProject extends Component {
   }
 
   renderContent() {
+    // if (!this.state.loaded) {
+    //   return this.renderLoadingView();
+    // }
+
     return (
       <View style={styles.content}>
         <ListView
@@ -157,7 +206,7 @@ const styles = StyleSheet.create({
 	hamburger: {
 		paddingTop: 10,
 		paddingLeft: 15,
-		paddingRight: 15	
+		paddingRight: 15
 	},
 	subredditDropdown: {
 		width: 145
