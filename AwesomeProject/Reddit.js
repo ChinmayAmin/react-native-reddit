@@ -14,30 +14,22 @@ var _ = require('lodash');
 var reddit = require('./RedditApi');
 
 export default class AwesomeProject extends Component {
-  constructor(props){
+  constructor(props) {
     super(props);
     var ds = new ListView.DataSource({
       rowHasChanged: (r1, r2) => r1 != r2
     });
 
   	this.state = {
-  		ds: this.getSubredditData(),
+  		ds: [],
   		dataSource:ds,
-  		subreddit: '',
       defaultSubredditList: [],
+      currentSubreddit: '',
       loaded: false
-	  }
+    }
 }
 
-  getSubredditData() {
-    var data = [];
-    for(var i = 0; i < 20; i++) {
-      data.push('team' + i);
-    }
-    return data;
-  }
-
-  getDefaultData() {
+  getInitialData() {
     reddit.getDefaultSubreddits().then((response) => {
       let names = [];
       _.each(response, function(subreddit) {
@@ -45,18 +37,33 @@ export default class AwesomeProject extends Component {
           subreddit.url.split('/r/')[1].split('/')[0]
         );
       });
-      console.log('finished');
+      return names;
+    }).then((names) => {
       this.setState({
-        loaded: true,
         defaultSubredditList: names,
-        dataSource:this.state.dataSource.cloneWithRows(names)
+        currentSubreddit: names[0],
+        loaded: true
       })
-    }).done();
+    }).then((names) => {
+      reddit.getSubredditData(this.state.currentSubreddit).then((response) => {
+        let storyHeading = [];
+        _.each(response, function(subredditStory) {
+          storyHeading.push(subredditStory.title);
+        });
+        this.setState({
+          ds: storyHeading,
+          dataSource:this.state.dataSource.cloneWithRows(storyHeading)
+        })
+        return storyHeading;
+      })
+    }).catch((error) => {
+    	  console.warn(error);
+  	}).done();
+
   }
 
   componentDidMount() {
-    console.log('called');
-    this.getDefaultData();
+    this.getInitialData();
   }
 
   renderLoadingView() {
@@ -78,25 +85,34 @@ export default class AwesomeProject extends Component {
     );
   }
 
-  headerButtonsPressed(itemPressed) {
-   	_.each([1,2], function(test) {
-  	});
+  onDropDownClick(name) {
+    reddit.getSubredditData(name).then((response) => {
+      let storyHeading = [];
+      _.each(response, function(subredditStory) {
+        storyHeading.push(subredditStory.title);
+      });
+      this.setState({
+        currentSubreddit: name,
+        ds: storyHeading,
+        dataSource:this.state.dataSource.cloneWithRows(storyHeading)
+      })
+      return storyHeading;
+    })
   }
-  populatePicker() {
-    // return (
-    //   <Picker.Item label="test" value="test" />
-    // )
-    // return _.reduce(this.state.defaultSubredditList, function(result, val, key) {
-			// result.push(<Picker.Item label=val value=val />);
-		// 	return result;
-		// }, []);
-    // var result = [];
-    // for (var i = 0; i < this.state.defaultSubredditList.length; i++) {
-    //   result.push(<Picker.Item label=val value=val />);
-    // }
-    // return (
-    //     {result}
-    // );
+
+  headerButtonsPressed(itemPressed) {
+    switch(itemPressed) {
+      case 'dropdown':
+        // this.onDropDownClick();
+        break;
+      default:
+    }
+  }
+  populatePickerItems() {
+    return _.reduce(this.state.defaultSubredditList, function(result, subreddit) {
+      result.push(<Picker.Item label={subreddit} value={subreddit}/>);
+      return result;
+    }, []);
   }
 
   renderHeaderSearch() {
@@ -109,10 +125,12 @@ export default class AwesomeProject extends Component {
     	</View>
     	<View style={styles.subredditDropdown}>
         <Picker
-           selectedValue={this.state.subreddit}
-           onValueChange={(subreddit) => this.setState({subreddit: subreddit})}>
-           {this.populatePicker()}
-          </Picker>
+           selectedValue={this.state.currentSubreddit}
+           onValueChange={(name) => this.onDropDownClick(name)}
+           mode={'dropdown'}
+           >
+           {this.populatePickerItems()}
+        </Picker>
     	</View>
     	<View style={styles.space}/>
     	<View style={styles.search}>
@@ -126,9 +144,9 @@ export default class AwesomeProject extends Component {
     	</TouchableHighlight>
     	</View>
     	<View style={styles.sidebar}>
-    		<TouchableHighlight onPress={this.headerButtonsPressed('sidebar')} underlayColor="#5C5C5C">
-    		<Image source={require('./sidebar.png')} style={{height: 30, width: 30}}/>
-    	</TouchableHighlight>
+        <TouchableHighlight onPress={this.headerButtonsPressed('sidebar')} underlayColor="#5C5C5C">
+            <Image source={require('./sidebar.png')} style={{height: 30, width: 30}}/>
+        </TouchableHighlight>
     	</View>
     	</View>
     );
@@ -188,15 +206,15 @@ export default class AwesomeProject extends Component {
 }
 
 const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      flexDirection: 'column',
-	  alignSelf: "stretch"
-    },
-    header: {
-      flex: .15,
-	  alignSelf: "stretch"
-    },
+  container: {
+    flex: 1,
+    flexDirection: 'column',
+    alignSelf: "stretch"
+  },
+  header: {
+    flex: .15,
+    alignSelf: "stretch"
+  },
 	headerSearch: {
 		flex: 1,
 		flexDirection: 'row',
@@ -209,10 +227,10 @@ const styles = StyleSheet.create({
 		paddingRight: 15
 	},
 	subredditDropdown: {
-		width: 145
+		width: 190
 	},
 	space: {
-		width: 50
+		width: 20
 	},
 	search: {
 		paddingTop: 7,
@@ -249,16 +267,16 @@ const styles = StyleSheet.create({
 		width: 35,
 		height: 35
 	},
-    content: {
-      flex: .75,
-	  alignSelf: "stretch",
-	  backgroundColor: '#9087BD'
-    },
-    row:{
-      flex:1,
-      flexDirection:'row',
-      padding:18,
-      borderBottomWidth: 0.2,
-      borderColor: '#d7d7d7',
-    }
+  content: {
+    flex: .75,
+    alignSelf: "stretch",
+    backgroundColor: '#9087BD'
+  },
+  row:{
+    flex:1,
+    flexDirection:'row',
+    paddingTop:18,
+    borderBottomWidth: 0.2,
+    borderColor: '#d7d7d7'
+  }
 });

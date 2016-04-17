@@ -6,6 +6,9 @@ export function getSubredditData(subredditName) {
   return fetch(BASE_URL + 'r/' + subredditName + '/.json')
 	.then((response) => response.json())
 	.then((response) => {
+    if(response.error === '403') {
+        return ['No permission'];
+    }
 		return _.reduce(response.data.children, function(result, value, key) {
 			result.push(value.data);
 			return result;
@@ -13,7 +16,7 @@ export function getSubredditData(subredditName) {
 	})
 	.catch((error) => {
 	  console.warn(error);
-	}).done();
+	});
 }
 
 export function getDefaultSubreddits() {
