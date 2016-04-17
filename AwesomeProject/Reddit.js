@@ -25,7 +25,8 @@ export default class AwesomeProject extends Component {
   		ds: [],
   		dataSource:ds,
       defaultSubredditList: [],
-      currentSubreddit: '',
+      currentSubreddit: 'gadgets',
+      currentFilter: 'top',
       reloading: true
     }
 }
@@ -96,15 +97,47 @@ export default class AwesomeProject extends Component {
       _.each(response, function(subredditStory) {
         storyHeading.push(subredditStory.title);
       });
+      return storyHeading;
+    }).then((storyHeading) => {
       this.setState({
         currentSubreddit: name,
         ds: storyHeading,
         dataSource:this.state.dataSource.cloneWithRows(storyHeading)
       })
-      return storyHeading;
     }).catch((error) => {
     	  console.warn(error);
   	}).done();
+  }
+
+  onDropDownFilterClick(filter) {
+    this.setState({
+      currentFilter: filter,
+      reloading: true
+    });
+
+    reddit.getSubredditDataWithFilter(this.state.currentSubreddit, this.state.currentFilter.toLowerCase()).then((response) => {
+      let storyHeading = [];
+
+      if(_.isEmpty(response)) {
+        storyHeading.push('No data');
+      }
+
+      _.each(response, function(subredditStory) {
+        storyHeading.push(subredditStory.title || subredditStory.link_title);
+      });
+
+      return storyHeading;
+    }).then((storyHeading) => {
+      this.setState({
+        currentSubreddit: this.state.currentSubreddit,
+        ds: storyHeading,
+        reloading: false,
+        dataSource:this.state.dataSource.cloneWithRows(storyHeading),
+        reloading: false
+      })
+    }).catch((error) => {
+        console.warn(error);
+    }).done();
   }
 
   onRefreshClicked() {
@@ -131,11 +164,20 @@ export default class AwesomeProject extends Component {
 
   headerButtonsPressed(itemPressed) {
   }
-  populatePickerItems() {
+  populateSearchPickerItems() {
     return _.reduce(this.state.defaultSubredditList, function(result, subreddit) {
       result.push(<Picker.Item label={subreddit} value={subreddit} />);
       return result;
     }, []);
+  }
+
+  populateFilterPickerItems() {
+    let filters = ['New', 'Rising', 'Top', 'Gilded', 'Controversial'];
+    let result = [];
+    _.each(filters, function(filter) {
+      result.push(<Picker.Item label={filter} value={filter} />);
+    }, []);
+    return result;
   }
 
   renderHeaderSearch() {
@@ -152,7 +194,7 @@ export default class AwesomeProject extends Component {
            onValueChange={(name) => this.onDropDownClick(name)}
            mode={'dropdown'}
            >
-           {this.populatePickerItems()}
+           {this.populateSearchPickerItems()}
         </Picker>
     	</View>
     	<View style={styles.space}/>
@@ -177,15 +219,20 @@ export default class AwesomeProject extends Component {
 
   renderHeaderFilter() {
     return (
-     <View style={styles.headerFilter}>
-      	<TouchableHighlight onPress={this.headerButtonsPressed('FilterText')} underlayColor="#7A7A7A">
-    		<Text style={styles.headerFilterText}> What's hot </Text>
-    	</TouchableHighlight>
-		<View style={styles.filterSpace}/>
-      	<TouchableHighlight onPress={this.headerButtonsPressed('filterBar')} underlayColor="#7A7A7A">
-		<Image source={require('./filter.png')} style={{height: 35, width: 35}}/>
-    	</TouchableHighlight>
-	</View>
+      <View style={styles.headerFilter}>
+        <TouchableHighlight onPress={this.headerButtonsPressed('FilterText')} underlayColor="#7A7A7A">
+          <Text style={styles.headerFilterText}> What's hot </Text>
+        </TouchableHighlight>
+        <View style={styles.headerFilterDropdown}>
+          <Picker
+             selectedValue={this.state.currentFilter}
+             onValueChange={(name) => this.onDropDownFilterClick(name)}
+             mode={'dropdown'}
+             >
+             {this.populateFilterPickerItems()}
+          </Picker>
+        </View>
+      </View>
     );
   }
 
@@ -280,15 +327,12 @@ const styles = StyleSheet.create({
 		paddingLeft: 15
 	},
 	headerFilterText: {
-		width: 150,
+		width: 1,
 		fontSize: 18
 	},
-	filterSpace: {
-		width: 145
-	},
 	headerFilterDropdown: {
-		width: 35,
-		height: 35
+    paddingTop: -10,
+    width: 340
 	},
   content: {
     flex: .75,
