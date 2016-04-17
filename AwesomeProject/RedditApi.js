@@ -9,6 +9,11 @@ export function getSubredditData(subredditName) {
     if(response.error === '403') {
         return ['No permission'];
     }
+
+    if(!response.data) {
+      return ['No data'];
+    }
+
 		return _.reduce(response.data.children, function(result, value, key) {
 			result.push(value.data);
 			return result;
@@ -23,6 +28,14 @@ export function getDefaultSubreddits() {
   return fetch(BASE_URL + 'subreddits/default.json')
 	.then((response) => response.json())
 	.then((response) => {
+    if(response.error === '403') {
+        return ['No permission'];
+    }
+    
+    if(!response.data) {
+      return ['No data'];
+    }
+
     return _.reduce(response.data.children, function(result, value, key) {
 			result.push(value.data);
 			return result;

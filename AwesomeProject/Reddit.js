@@ -5,6 +5,7 @@ import React, {
   Text,
   View,
   TouchableHighlight,
+  TouchableOpacity,
   Image,
   ListView,
   Picker
@@ -25,7 +26,7 @@ export default class AwesomeProject extends Component {
   		dataSource:ds,
       defaultSubredditList: [],
       currentSubreddit: '',
-      loaded: false
+      reloading: true
     }
 }
 
@@ -42,20 +43,24 @@ export default class AwesomeProject extends Component {
       this.setState({
         defaultSubredditList: names,
         currentSubreddit: names[0],
-        loaded: true
+        reloading: false
       })
     }).then((names) => {
       reddit.getSubredditData(this.state.currentSubreddit).then((response) => {
         let storyHeading = [];
         _.each(response, function(subredditStory) {
           storyHeading.push(subredditStory.title);
-        });
-        this.setState({
-          ds: storyHeading,
-          dataSource:this.state.dataSource.cloneWithRows(storyHeading)
         })
         return storyHeading;
-      })
+      }).then((storyHeading) => {
+        this.setState({
+          ds: storyHeading,
+          dataSource:this.state.dataSource.cloneWithRows(storyHeading),
+          reloading: false
+        })
+      }).catch((error) => {
+      	  console.warn(error);
+    	}).done();
     }).catch((error) => {
     	  console.warn(error);
   	}).done();
@@ -97,20 +102,38 @@ export default class AwesomeProject extends Component {
         dataSource:this.state.dataSource.cloneWithRows(storyHeading)
       })
       return storyHeading;
-    })
+    }).catch((error) => {
+    	  console.warn(error);
+  	}).done();
+  }
+
+  onRefreshClicked() {
+    this.setState({
+      reloading: true
+    });
+
+    reddit.getSubredditData(this.state.currentSubreddit).then((response) => {
+      let storyHeading = [];
+      _.each(response, function(subredditStory) {
+        storyHeading.push(subredditStory.title);
+      });
+      this.setState({
+        currentSubreddit: this.state.currentSubreddit,
+        ds: storyHeading,
+        reloading: false,
+        dataSource:this.state.dataSource.cloneWithRows(storyHeading)
+      })
+      return storyHeading;
+    }).catch((error) => {
+    	  console.warn(error);
+  	}).done();
   }
 
   headerButtonsPressed(itemPressed) {
-    switch(itemPressed) {
-      case 'dropdown':
-        // this.onDropDownClick();
-        break;
-      default:
-    }
   }
   populatePickerItems() {
     return _.reduce(this.state.defaultSubredditList, function(result, subreddit) {
-      result.push(<Picker.Item label={subreddit} value={subreddit}/>);
+      result.push(<Picker.Item label={subreddit} value={subreddit} />);
       return result;
     }, []);
   }
@@ -139,9 +162,9 @@ export default class AwesomeProject extends Component {
     		</TouchableHighlight>
     	</View>
     	<View style={styles.refresh}>
-    		<TouchableHighlight onPress={this.headerButtonsPressed('refresh')} underlayColor="#5C5C5C">
+    		<TouchableOpacity onPress={() => this.onRefreshClicked()}>
     		<Image source={require('./refresh.png')} style={{height: 30, width: 30}}/>
-    	</TouchableHighlight>
+    	</TouchableOpacity>
     	</View>
     	<View style={styles.sidebar}>
         <TouchableHighlight onPress={this.headerButtonsPressed('sidebar')} underlayColor="#5C5C5C">
@@ -190,9 +213,9 @@ export default class AwesomeProject extends Component {
   }
 
   renderContent() {
-    // if (!this.state.loaded) {
-    //   return this.renderLoadingView();
-    // }
+    if (this.state.reloading) {
+      return this.renderLoadingView();
+    }
 
     return (
       <View style={styles.content}>
